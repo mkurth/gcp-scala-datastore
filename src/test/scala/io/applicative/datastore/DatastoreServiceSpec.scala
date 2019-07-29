@@ -1,18 +1,22 @@
 package io.applicative.datastore
 
+import cats.effect.IO
 import com.google.cloud.datastore.{IncompleteKey, KeyFactory, Datastore => CloudDataStore, Key => CloudKey}
 import io.applicative.datastore.util.reflection.{Kind, TestClass}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import io.applicative.datastore.DatastoreService._
 
 class DatastoreServiceSpec(implicit ee: ExecutionEnv) extends Specification with Mockito {
-  private val cloudDataStore = mock[CloudDataStore]
-  private val dataStoreService = DatastoreService(cloudDataStore)
-  private val testInstance = TestClass()
 
-  "DatastoreService should" should {
+  "DatastoreService with IO" should {
+    val cloudDataStore = mock[CloudDataStore]
+    val dataStoreService = DatastoreService[IO](cloudDataStore)
+    val testInstance = TestClass()
 
     "create a new key with specified Kind" in {
       cloudDataStore.newKeyFactory() returns mockKeyFactory()
@@ -32,6 +36,20 @@ class DatastoreServiceSpec(implicit ee: ExecutionEnv) extends Specification with
       val clazz = classOf[SomeEntity2]
       val kind = dataStoreService.getKindByClass(clazz)
       kind must beEqualTo("CustomKind")
+    }
+  }
+
+  "DatastoreService with Future" should {
+    val cloudDataStore = mock[CloudDataStore]
+    val dataStoreService = DatastoreService[Future](cloudDataStore)
+    val testInstance = TestClass()
+
+    "create a new key with specified Kind" in {
+      cloudDataStore.newKeyFactory() returns mockKeyFactory()
+      val mk = mockKey("TestClass", testInstance.id)
+      cloudDataStore.allocateId(any[IncompleteKey]) returns mk
+      val key = dataStoreService.newKey[TestClass]()
+      Await.result(key, 1.second) must beEqualTo(Key(mk))
     }
   }
 

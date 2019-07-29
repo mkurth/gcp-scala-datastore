@@ -2,7 +2,6 @@ package io.applicative.datastore
 
 import java.util.Date
 
-import cats.effect.IO
 import com.google.cloud.Timestamp
 import com.google.cloud.datastore.EntityQuery.Builder
 import com.google.cloud.datastore.{Blob, Query}
@@ -11,7 +10,6 @@ import io.applicative.datastore.exception.UnsupportedFieldTypeException
 import io.applicative.datastore.util.DateTimeHelper
 import io.applicative.datastore.util.reflection.ReflectionHelper
 
-import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
@@ -39,22 +37,22 @@ package object query {
       this
     }
 
-    def asList(implicit ec: ExecutionContext, ds: DatastoreService): IO[List[E]] = {
+    def asList[F[_]](implicit ds: DatastoreService[F]): F[List[E]] = {
       val query = configureBuilder.build()
       ds.runQueryForList[E](query)
     }
 
-    def asList(limit: Int, offset: Int)(implicit ec: ExecutionContext, ds: DatastoreService): IO[List[E]] = {
+    def asList[F[_]](limit: Int, offset: Int)(implicit ds: DatastoreService[F]): F[List[E]] = {
       val query = configureBuilder.setOffset(offset).setLimit(limit).build()
       ds.runQueryForList[E](query)
     }
 
-    def asSingle(implicit ec: ExecutionContext, ds: DatastoreService): IO[Option[E]] = {
+    def asSingle[F[_]](implicit ds: DatastoreService[F]): F[Option[E]] = {
       val query = configureBuilder.build()
       ds.runQueryForSingleOpt[E](query)
     }
 
-    private def configureBuilder(implicit ds: DatastoreService) = {
+    private def configureBuilder[F[_]](implicit ds: DatastoreService[F]) = {
       val kind = ds.getKind[E]()
       builder.setKind(kind)
       filters match {

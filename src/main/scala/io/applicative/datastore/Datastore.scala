@@ -1,35 +1,34 @@
 package io.applicative.datastore
 
-import cats.effect.IO
 import com.google.cloud.datastore.{Transaction, Datastore => CloudDatastore}
 
-import scala.concurrent.ExecutionContext
+import scala.language.higherKinds
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
-trait Datastore {
+trait Datastore[F[_]] {
   /**
     * Creates a new Key with automatically randomly generated id.
     * @tparam E type of entity. Must be always specified.
     */
-  def newKey[E <: BaseEntity : TypeTag : ClassTag]()(implicit ec: ExecutionContext): IO[Key]
+  def newKey[E <: BaseEntity : TypeTag : ClassTag](): F[Key]
 
   /**
     * Creates a new Key with specified name.
     * @tparam E type of entity. Must be always specified.
     */
-  def newKey[E <: BaseEntity : TypeTag : ClassTag](name: String)(implicit ec: ExecutionContext): IO[Key]
+  def newKey[E <: BaseEntity : TypeTag : ClassTag](name: String): F[Key]
 
   /**
     * Creates a new Key with specified id.
     * @tparam E type of entity. Must be always specified.
     */
-  def newKey[E <: BaseEntity : TypeTag : ClassTag](id: Long)(implicit ec: ExecutionContext): IO[Key]
+  def newKey[E <: BaseEntity : TypeTag : ClassTag](id: Long): F[Key]
 
   /**
     * Returns a new Datastore transaction.
     */
-  def newTransaction(implicit ec: ExecutionContext): IO[Transaction]
+  def newTransaction: F[Transaction]
 
   /**
     * Datastore add operation: inserts the provided entity.
@@ -40,7 +39,7 @@ trait Datastore {
     * @param entity instance of type E to be inserted.
     * @tparam E type of entity. Must be always specified.
     */
-  def add[E <: BaseEntity : TypeTag : ClassTag](entity: E)(implicit ec: ExecutionContext): IO[E]
+  def add[E <: BaseEntity : TypeTag : ClassTag](entity: E): F[E]
 
   /**
     * Datastore add operation: inserts the provided entity with its key.
@@ -52,7 +51,7 @@ trait Datastore {
     * @param key Key
     * @tparam E type of entity. Must be always specified.
     */
-  def add[E <: BaseEntity : TypeTag : ClassTag](key: Key, entity: E)(implicit ec: ExecutionContext): IO[E]
+  def add[E <: BaseEntity : TypeTag : ClassTag](key: Key, entity: E): F[E]
 
   /**
     * Datastore add operation: inserts the provided entities along with its keys.
@@ -63,7 +62,7 @@ trait Datastore {
     * @param ke map of entity and its key
     * @tparam E type of entity. Must be always specified.
     */
-  def add[E <: BaseEntity : TypeTag : ClassTag](ke: Map[Key, E])(implicit ec: ExecutionContext): IO[List[E]]
+  def add[E <: BaseEntity : TypeTag : ClassTag](ke: Map[Key, E]): F[List[E]]
 
   /**
     * A Datastore update operation. The operation will fail if an entity with the same id does not
@@ -71,7 +70,7 @@ trait Datastore {
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def update[E <: BaseEntity : TypeTag : ClassTag](entity: E)(implicit ec: ExecutionContext): IO[Unit]
+  def update[E <: BaseEntity : TypeTag : ClassTag](entity: E): F[Unit]
 
   /**
     * A Datastore update operation. The operation will fail if an entity with the same id does not
@@ -79,7 +78,7 @@ trait Datastore {
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def update[E <: BaseEntity : TypeTag : ClassTag](entities: List[E])(implicit ec: ExecutionContext): IO[Unit]
+  def update[E <: BaseEntity : TypeTag : ClassTag](entities: List[E]): F[Unit]
 
   /**
     * A Datastore put (a.k.a upsert) operation: inserts an entity if it does not exist, updates it
@@ -87,7 +86,7 @@ trait Datastore {
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def put[E <: BaseEntity : TypeTag : ClassTag](entity: E)(implicit ec: ExecutionContext): IO[E]
+  def put[E <: BaseEntity : TypeTag : ClassTag](entity: E): F[E]
 
   /**
     * A Datastore put (a.k.a upsert) operation: inserts an entity if it does not exist, updates it
@@ -95,42 +94,42 @@ trait Datastore {
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def put[E <: BaseEntity : TypeTag : ClassTag](entities: List[E])(implicit ec: ExecutionContext): IO[List[E]]
+  def put[E <: BaseEntity : TypeTag : ClassTag](entities: List[E]): F[List[E]]
 
   /**
     * A datastore delete operation.
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def delete[E <: BaseEntity : TypeTag : ClassTag](keys: Key*)(implicit ec: ExecutionContext): IO[Unit]
+  def delete[E <: BaseEntity : TypeTag : ClassTag](keys: Key*): F[Unit]
 
   /**
     * A datastore delete operation.
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def delete[E <: BaseEntity : TypeTag : ClassTag](ids: List[Long])(implicit ec: ExecutionContext): IO[Unit]
+  def delete[E <: BaseEntity : TypeTag : ClassTag](ids: List[Long]): F[Unit]
 
   /**
     * Retrieves instance of class E with specified id.
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def get[E <: BaseEntity : TypeTag : ClassTag](id: Long)(implicit ec: ExecutionContext): IO[Option[E]]
+  def get[E <: BaseEntity : TypeTag : ClassTag](id: Long): F[Option[E]]
 
   /**
     * Retrieves instance of class E with specified id.
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def get[E <: BaseEntity : TypeTag : ClassTag](id: String)(implicit ec: ExecutionContext): IO[Option[E]]
+  def get[E <: BaseEntity : TypeTag : ClassTag](id: String): F[Option[E]]
 
   /**
     * Retrieves instance of class E with specified key.
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def get[E <: BaseEntity : TypeTag : ClassTag](key: Key)(implicit ec: ExecutionContext): IO[Option[E]]
+  def get[E <: BaseEntity : TypeTag : ClassTag](key: Key): F[Option[E]]
 
   /**
     * Returns an Entity for each given id that exists in the Datastore. The order of
@@ -138,14 +137,14 @@ trait Datastore {
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def getLazy[E <: BaseEntity : TypeTag : ClassTag, K](ids: List[K])(implicit ec: ExecutionContext): IO[Iterator[E]]
+  def getLazy[E <: BaseEntity : TypeTag : ClassTag, K](ids: List[K]): F[Iterator[E]]
 
   /**
     * Returns a list with a value for each given key (ordered by input).
     *
     * @tparam E type of entity. Must be always specified.
     */
-  def fetch[E <: BaseEntity : TypeTag : ClassTag, K](ids: List[K])(implicit ec: ExecutionContext): IO[List[Option[E]]]
+  def fetch[E <: BaseEntity : TypeTag : ClassTag, K](ids: List[K]): F[List[Option[E]]]
 
   private[datastore] def getKindByClass(clazz: Class[_]): String
 
