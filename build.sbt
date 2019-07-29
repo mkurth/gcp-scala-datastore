@@ -10,12 +10,6 @@ licenses += ("Apache-2.0", url(
   "https://www.apache.org/licenses/LICENSE-2.0.html"
 ))
 
-bintrayOrganization := Some("applctv")
-
-bintrayRepository := "gcp-scala-datastore"
-
-bintrayVcsUrl := Some("git@github.com:applctv/gcp-scala-datastore.git")
-
 crossScalaVersions := Seq("2.11.11", scalaVersion.value, "2.13.0")
 
 // Publish settings for Maven Central
