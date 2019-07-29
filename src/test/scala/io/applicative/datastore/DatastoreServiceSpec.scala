@@ -19,7 +19,7 @@ class DatastoreServiceSpec(implicit ee: ExecutionEnv) extends Specification with
       val mk = mockKey("TestClass", testInstance.id)
       cloudDataStore.allocateId(any[IncompleteKey]) returns mk
       val key = dataStoreService.newKey[TestClass]()
-      key must beEqualTo(Key(mk)).await
+      key.unsafeRunSync() must beEqualTo(Key(mk))
     }
 
     "create a new key with class name as a value if annotation Kind is not present" in {
