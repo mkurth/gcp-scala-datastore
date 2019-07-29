@@ -38,7 +38,7 @@ libraryDependencies ++= {
 
   Seq(
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-    "com.google.cloud" % "google-cloud-datastore" % gcdJavaSDKVersion,
+    ("com.google.cloud" % "google-cloud-datastore" % gcdJavaSDKVersion).excludeAll(ExclusionRule(organization = "com.google.guava", name = "guava")),
     "org.typelevel" %% "cats-effect" % catsVersion,
     "org.specs2" %% "specs2-core" % specsVersion % "test",
     "org.specs2" %% "specs2-mock" % specsVersion % "test"
