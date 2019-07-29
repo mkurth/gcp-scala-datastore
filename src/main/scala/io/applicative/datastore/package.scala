@@ -10,49 +10,50 @@ import io.applicative.datastore.exception.UnsupportedFieldTypeException
 import io.applicative.datastore.util.DateTimeHelper
 import io.applicative.datastore.util.reflection.ReflectionHelper
 
+import scala.language.higherKinds
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 package object query {
 
-  def select[E <: BaseEntity : TypeTag : ClassTag] = {
+  def select[E <: BaseEntity : TypeTag : ClassTag, F[_]] = {
     val builder = Query.newEntityQueryBuilder()
-    new SelectClause[E](builder)
+    new SelectClause[E, F](builder)
   }
 
   implicit def anyToProperty(a: Any): Property = Property(a)
 
 
-  sealed abstract class Clause[E <: BaseEntity : TypeTag : ClassTag](protected val builder: Builder) extends ReflectionHelper {
+  sealed abstract class Clause[E <: BaseEntity : TypeTag : ClassTag, F[_]](protected val builder: Builder) extends ReflectionHelper {
     protected val filters: List[PropertyFilter]
     private var orders: List[OrderInstance] = List()
 
-    def ascOrderBy(field: String): Clause[E] = {
+    def ascOrderBy(field: String): Clause[E, F] = {
       this.orders = this.orders :+ OrderInstance(field, Asc)
       this
     }
 
-    def descOrderBy(field: String): Clause[E] = {
+    def descOrderBy(field: String): Clause[E, F] = {
       this.orders = this.orders :+ OrderInstance(field, Desc)
       this
     }
 
-    def asList[F[_]](implicit ds: DatastoreService[F]): F[List[E]] = {
+    def asList(implicit ds: DatastoreService[F]): F[List[E]] = {
       val query = configureBuilder.build()
       ds.runQueryForList[E](query)
     }
 
-    def asList[F[_]](limit: Int, offset: Int)(implicit ds: DatastoreService[F]): F[List[E]] = {
+    def asList(limit: Int, offset: Int)(implicit ds: DatastoreService[F]): F[List[E]] = {
       val query = configureBuilder.setOffset(offset).setLimit(limit).build()
       ds.runQueryForList[E](query)
     }
 
-    def asSingle[F[_]](implicit ds: DatastoreService[F]): F[Option[E]] = {
+    def asSingle(implicit ds: DatastoreService[F]): F[Option[E]] = {
       val query = configureBuilder.build()
       ds.runQueryForSingleOpt[E](query)
     }
 
-    private def configureBuilder[F[_]](implicit ds: DatastoreService[F]) = {
+    private def configureBuilder(implicit ds: DatastoreService[F]) = {
       val kind = ds.getKind[E]()
       builder.setKind(kind)
       filters match {
@@ -74,22 +75,22 @@ package object query {
   private case class OrderInstance(field: String, order: Order)
 
 
-  class SelectClause[E <: BaseEntity : TypeTag : ClassTag] (
+  class SelectClause[E <: BaseEntity : TypeTag : ClassTag, F[_]] (
                                                              override protected val builder: Builder
-                                                           ) extends Clause[E](builder) {
+                                                           ) extends Clause[E, F](builder) {
     override protected val filters: List[PropertyFilter] = List.empty[PropertyFilter]
 
-    def where(filter: PropertyFilter): AndSelectClause[E] = {
-      new AndSelectClause[E](builder, List(filter))
+    def where(filter: PropertyFilter): AndSelectClause[E, F] = {
+      new AndSelectClause[E, F](builder, List(filter))
     }
   }
 
-  class AndSelectClause[E <: BaseEntity : TypeTag : ClassTag](
+  class AndSelectClause[E <: BaseEntity : TypeTag : ClassTag, F[_]](
                                                                override protected val builder: Builder,
                                                                override protected val filters: List[PropertyFilter]
-                                                             ) extends Clause[E](builder) {
+                                                             ) extends Clause[E, F](builder) {
     def and(filter: PropertyFilter) = {
-      new AndSelectClause[E](builder, filters :+ filter)
+      new AndSelectClause[E, F](builder, filters :+ filter)
     }
   }
 

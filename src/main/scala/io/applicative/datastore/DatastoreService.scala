@@ -35,24 +35,23 @@ object DatastoreService {
     override def suspend[A](thunk: => Future[A]): Future[A] = thunk
   }
 
-  lazy val default: Datastore[IO] = new DatastoreService[IO](DatastoreOptions.getDefaultInstance.getService)
-  lazy val defaultFuture: Datastore[Future] = new DatastoreService[Future](DatastoreOptions.getDefaultInstance.getService)
+  lazy val default: DatastoreService[IO] = new DatastoreService[IO](DatastoreOptions.getDefaultInstance.getService)
+  lazy val defaultFuture: DatastoreService[Future] = new DatastoreService[Future](DatastoreOptions.getDefaultInstance.getService)
 
-  def apply[F[_] : Sync : Functor](
-                                    projectId: String,
-                                    namespace: Option[String] = None,
-                                    host: Option[String] = None,
-                                    credentials: Option[Credentials]
-                                  ): Datastore[F] = {
+  def apply[F[_] : Sync : Functor](projectId: String,
+                                   namespace: Option[String] = None,
+                                   host: Option[String] = None,
+                                   credentials: Option[Credentials]): Datastore[F] = {
     val builder = DatastoreOptions.newBuilder()
       .setProjectId(projectId)
     namespace.foreach(ns => builder.setNamespace(ns))
     host.foreach(h => builder.setHost(h))
     credentials.foreach(c => builder.setCredentials(c))
-    new DatastoreService(builder.build().getService)
+    new DatastoreService[F](builder.build().getService)
   }
 
-  def apply[F[_] : Sync : Functor](cloudDataStore: CloudDataStore): Datastore[F] = new DatastoreService(cloudDataStore)
+  def apply[F[_] : Sync : Functor](cloudDataStore: CloudDataStore): Datastore[F] = new DatastoreService[F](cloudDataStore)
+  def apply[F[_]](implicit ev: Datastore[F]): Datastore[F] = ev
 }
 
 class DatastoreService[F[_] : Sync : Functor](private val cloudDataStore: CloudDataStore) extends Datastore[F] with ReflectionHelper {
